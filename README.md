@@ -1,2 +1,2 @@
 # bakalari-predvidac
-Nemám nic společněho se společností BAKALÁŘI software s.r.o.
+Nemám nic společného s firmou BAKALÁŘI software s.r.o.

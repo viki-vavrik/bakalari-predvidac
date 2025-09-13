@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/x-icon" href="/icons/icon-192.png">
   <title>Bakaláři – Předvídač známek</title>
   <style>
     :root { --bg:#0b1020; --panel:#121937; --muted:#95a0b8; --text:#e8eeff; --accent:#7c9cff; --ok:#35c36b; --warn:#ffc857; --err:#ff6b6b; }
@@ -43,6 +42,8 @@
     .table td{background:#0f1736}
     .right{text-align:right}
     .btn-danger{background:#4a1623;border-color:#7a2537}
+
+    #loginHost {padding-right: 36px}
   </style>
 </head>
 <body>
@@ -63,11 +64,27 @@
     <!-- LOGIN -->
     <div class="card" id="loginCard">
       <label>Adresa školy</label>
-      <input id="loginHost" autocomplete="url" data-protonpass-ignore="true" placeholder="https://stav-ova.bakalari.cz/bakaweb" />
+       <div style="position: relative;">
+  <input id="loginHost" autocomplete="url" data-protonpass-ignore="true" 
+         placeholder="https://stav-ova.bakalari.cz/bakaweb" />
+  <button id="schoolPickerBtn"  style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+         width:24px;height:24pxy;        /* <<< přidáno */
+         background:none;border:none;
+         display:flex;align-items:center;justify-content:center; /* centrování */
+         color:#7c9cff;cursor:pointer;font-size:18px;
+         padding:0;line-height:1;">
+  🔍
+</button>
+
+	  <div id="schoolDropdown"  style="display:none;position:absolute;top:110%;left:0;right:0; max-height:260px;overflow:auto;background:#0d1330; border:1px solid #22306a;border-radius:12px;z-index:1000;">
+   	 <input id="schoolSearch" placeholder="Hledat školu..." style="width:100%;padding:8px;border:none;border-bottom:1px solid #22306a; background:#0b1020;color:#e8eeff;box-sizing:border-box;" />
+	    <div id="schoolList"></div>
+ 	 </div>
+	</div>
       <label>Uživatelské jméno</label>
-      <input id="loginUser" autocomplete="username" />
+     	 <input id="loginUser" autocomplete="username" />
       <label>Heslo</label>
-      <input id="loginPass" type="password" autocomplete="current-password" />
+     	 <input id="loginPass" type="password" autocomplete="current-password" />
       <label>Použijte vaše přihlašovací údaje do systému Bakaláři.</label>
       <button id="btnLogin">Přihlásit se</button>
     </div>
@@ -132,7 +149,73 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    const $ = (id)=>document.getElementById(id);
+const $ = (id)=>document.getElementById(id);
+// zacatek seznamu
+let schools = [];
+
+// Načti seznam škol
+async function loadSchools() {
+  try {
+    const resp = await fetch("https://vitskalicky.gitlab.io/bakalari-schools-list/schoolsList.json");
+    schools = await resp.json();
+  } catch (e) {
+    console.error("Nepodařilo se načíst seznam škol", e);
+  }
+}
+
+function renderSchools(filter="") {
+  const listDiv = $("schoolList");
+  listDiv.innerHTML = "";
+  const f = filter.toLowerCase();
+  const filtered = schools.filter(s => 
+    s.name.toLowerCase().includes(f) || s.url.toLowerCase().includes(f)
+  );
+  if (!filtered.length) {
+    listDiv.innerHTML = "<div style='padding:8px;color:#95a0b8'>Žádná shoda</div>";
+    return;
+  }
+  filtered.forEach(s => {
+    const item = document.createElement("div");
+    item.style.padding = "8px 10px";
+    item.style.cursor = "pointer";
+    item.style.borderBottom = "1px solid #1a2550";
+    item.innerHTML = `<div>${s.name}</div>
+                      <div style="font-size:12px;color:#95a0b8">${s.url}</div>`;
+    item.onclick = () => {
+      $("loginHost").value = s.url.replace(/\/$/, "");
+      $("schoolDropdown").style.display = "none";
+    };
+    item.onmouseover = () => item.style.background="#1a2550";
+    item.onmouseout  = () => item.style.background="";
+    listDiv.appendChild(item);
+  });
+}
+
+// Ovládání dropdownu
+$("schoolPickerBtn").onclick = (e) => {
+  e.preventDefault();
+  const dd = $("schoolDropdown");
+  dd.style.display = dd.style.display==="none" ? "block" : "none";
+  $("schoolSearch").value = "";
+  renderSchools();
+  $("schoolSearch").focus();
+};
+
+$("schoolSearch").oninput = () => renderSchools($("schoolSearch").value);
+
+// Klik mimo dropdown = zavřít
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#schoolDropdown") && e.target.id!=="schoolPickerBtn") {
+    $("schoolDropdown").style.display = "none";
+  }
+});
+
+// Načti seznam při startu
+loadSchools();
+
+
+
+    // po seznamu
     const toast=(msg)=>{const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
 
     const cfg = {

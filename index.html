@@ -3,25 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Předvídač známek – Bakaláři</title>
+  <link rel="icon" type="image/x-icon" href="/icons/icon-192.png">
+  <title>Bakaláři – Předvídač známek</title>
   <style>
     :root { --bg:#0b1020; --panel:#121937; --muted:#95a0b8; --text:#e8eeff; --accent:#7c9cff; --ok:#35c36b; --warn:#ffc857; --err:#ff6b6b; }
-    html,body{height:100%}
-    body{margin:0;background:linear-gradient(180deg,#0b1020,#0f1530 40%,#0b1020);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,"Noto Sans",sans-serif}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#0b1020,#0f1530 40%,#0b1020);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,"Noto Sans",sans-serif}
     .wrap{max-width:980px;margin:24px auto;padding:0 16px}
-    h1{font-weight:800;letter-spacing:.2px;font-size:clamp(22px,2.6vw,30px);margin:0 0 6px}
-    .muted{color:var(--muted)}
+    h1{font-weight:800;font-size:clamp(22px,2.6vw,30px);margin:68px 0 16px;text-align:center}
+    label{display:block;font-size:13px;color:#b7c2e8;margin-bottom:4px}
+    input,select,button{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #22306a;background:#0d1330;color:var(--text);outline:none;box-sizing:border-box}
+    button{cursor:pointer;background:linear-gradient(180deg,#2a3ea1,#23348a);border:1px solid #3247c0;font-weight:700}
     .card{background:linear-gradient(180deg,#131a38,#0f1630);border:1px solid #1b254e;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:18px;margin:14px 0}
+
+    /* Sidebar */
+    .menu-btn{position:fixed;top:8px;left:8px;width:auto;background:none;border:none;font-size:24px;color:var(--text);cursor:pointer;z-index:900;display:none}
+    .sidebar{position:fixed;top:0;left:-100%;width:240px;height:100%;background:#121937;border-right:1px solid #1b254e;box-shadow:4px 0 20px rgba(0,0,0,.4);padding:20px;transition:.3s;z-index:1000}
+    .sidebar.open{left:0}
+    .sidebar .close-btn{position: absolute;top: 8px;right: -110px;background: none;border: none;font-size: 24px;color: var(--text);cursor: pointer}
+    .sidebar h2{margin:0 0 10px;font-size:18px}
+    .sidebar .logout{margin-top:20px;background:#4a1623;border-color:#7a2537;width:100%}
+
+    /* Hidden sections by default */
+    #appCard{display:none}
+    #loginCard{max-width:400px;margin:60px auto}
+
+    .toast{position:fixed;bottom:14px;right:14px;background:#0d1330;border:1px solid #22306a;color:#e8eeff;padding:10px 14px;border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,.4);opacity:0;transform:translateY(12px);transition:all .2s}
+    .toast.show{opacity:1;transform:translateY(0)}
+
+    /* tabulka a karty */
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .col{flex:1 1 260px}
-    label{display:block;font-size:12px;color:#b7c2e8;margin-bottom:6px}
-    input,select,button,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #22306a;background:#0d1330;color:var(--text);outline:none;box-sizing:border-box}
-    input::placeholder{color:#7f8ab1}
-    button{cursor:pointer;background:linear-gradient(180deg,#2a3ea1,#23348a);border:1px solid #3247c0;font-weight:700}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .btn-secondary{background:#16204a;border-color:#25377a}
-    .btn-danger{background:#4a1623;border-color:#7a2537}
-    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #26356d;border-radius:999px;padding:6px 10px;background:#101739}
     .kpi{display:flex;gap:16px;flex-wrap:wrap}
     .kpi .item{flex:1 1 200px;background:#0f1736;border:1px solid #1b2a60;border-radius:14px;padding:12px}
     .kpi .val{font-size:28px;font-weight:800}
@@ -30,77 +41,39 @@
     .table th,.table td{padding:10px;text-align:left;border:1px solid #1b2a60}
     .table th{font-size:12px;color:#9fb0e0;background:#101739}
     .table td{background:#0f1736}
-    .flex{display:flex;gap:10px;align-items:center}
     .right{text-align:right}
-    .danger{color:var(--err)}
-    .ok{color:var(--ok)}
-    .warn{color:var(--warn)}
-    .footnote{font-size:12px;color:#98a6d6}
-    .small{font-size:12px}
-    .link{color:#a7c0ff}
-    .toast{position:fixed;bottom:14px;right:14px;background:#0d1330;border:1px solid #22306a;color:#e8eeff;padding:10px 14px;border-radius:12px;box-shadow:0 10px 32px rgba(0,0,0,.4);opacity:0;transform:translateY(12px);transition:all .2s}
-    .toast.show{opacity:1;transform:translateY(0)}
-    .help{font-size:12px;color:#9fb0e0}
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-    .span-6{grid-column:span 6}
-    .span-12{grid-column:span 12}
-    @media(max-width:820px){
-      .grid{grid-template-columns:repeat(6,1fr)}
-      .span-6{grid-column:span 6}
-      .span-12{grid-column:span 6}
-      .table th,.table td{font-size:12px;padding:6px}
-    }
+    .btn-danger{background:#4a1623;border-color:#7a2537}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>📘 Bakaláři – Průměr & Předvídač známek</h1>
-    <div class="muted small"><span id="schoolHint" class="pill"></span></div>
+  <button id="menuBtn" class="menu-btn">☰</button>
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" id="closeSidebar">✕</button>
+    <h2>Aktuální přihlášení</h2>
+    <label>Adresa školy</label>
+    <input id="host" placeholder="https://stav-ova.bakalari.cz/bakaweb" />
+    <label>Uživatelské jméno</label>
+    <input id="usernameSidebar" disabled />
+    <button id="logout" class="logout">Odhlásit se</button>
+  </div>
 
-    <!-- CONFIG -->
-    <div class="card" id="configCard">
-      <div class="row">
-        <div class="col">
-          <label>Adresa školy (host)</label>
-          <input id="host" autocomplete="off" data-1p-ignore data-lpignore="true" data-protonpass-ignore="true" placeholder="např. https://stav-ova.bakalari.cz/bakaweb" />
-          <div class="help">Příklad adresy: https://stav-ova.bakalari.cz/bakaweb nebo https://znamky.spseiostrava.cz</div>
-        </div>
-        <div class="col">
-          <label>Zůstat přihlášen*a?</label>
-          <select id="remember">
-            <option value="no">Ne</option>
-            <option value="yes">Ano (LocalStorage)</option>
-          </select>
-        </div>
-        <div class="col">
-          <label>&nbsp;</label>
-          <button id="saveCfg">Uložit nastavení</button>
-        </div>
-      </div>
-    </div>
+  <div class="wrap">
+    <h1>Průměry a předvídač známek</h1>
 
     <!-- LOGIN -->
     <div class="card" id="loginCard">
-      <div class="row">
-        <div class="col">
-          <label>Přihlašovací jméno</label>
-          <input id="username" autocomplete="username" />
-        </div>
-        <div class="col">
-          <label>Heslo</label>
-          <input id="password" type="password" autocomplete="current-password" />
-        </div>
-        <div class="col">
-          <label>&nbsp;</label>
-          <button id="btnLogin">Přihlásit se</button>
-        </div>
-      </div>
-      <div class="help">Použijte vaše přihlašovací údaje do aplikace Bakaláři.</div>
-      <div class="footnote">Potíže? Zkuste oficiální přihlášení: <a id="directLogin" class="link" target="_blank" rel="noopener">/bakaweb/login</a></div>
+      <label>Adresa školy</label>
+      <input id="loginHost" autocomplete="url" data-protonpass-ignore="true" placeholder="https://stav-ova.bakalari.cz/bakaweb" />
+      <label>Uživatelské jméno</label>
+      <input id="loginUser" autocomplete="username" />
+      <label>Heslo</label>
+      <input id="loginPass" type="password" autocomplete="current-password" />
+      <label>Použijte vaše přihlašovací údaje do systému Bakaláři.</label>
+      <button id="btnLogin">Přihlásit se</button>
     </div>
 
     <!-- APP -->
-    <div class="card" id="appCard" style="display:none">
+    <div class="card" id="appCard">
       <div class="kpi">
         <div class="item"><div class="small">Předmět</div><div id="subjectTitle" class="val">—</div></div>
         <div class="item"><div class="small">Vážený průměr</div><div id="avgVal" class="val">—</div></div>
@@ -115,10 +88,6 @@
         <div class="col">
           <label>&nbsp;</label>
           <button id="reload">Načíst/Obnovit</button>
-        </div>
-        <div class="col right">
-          <label>&nbsp;</label>
-          <button id="logout" class="btn-secondary">Odhlásit</button>
         </div>
       </div>
 
@@ -137,21 +106,18 @@
           <div class="row">
             <div class="col">
               <select id="simGrade">
-                <option value="1">1</option>
-                <option value="1-">1-</option>
-                <option value="2">2</option>
-                <option value="2-">2-</option>
-                <option value="3">3</option>
-                <option value="3-">3-</option>
-                <option value="4">4</option>
-                <option value="4-">4-</option>
+                <option value="1">1</option><option value="1-">1-</option>
+                <option value="2">2</option><option value="2-">2-</option>
+                <option value="3">3</option><option value="3-">3-</option>
+                <option value="4">4</option><option value="4-">4-</option>
                 <option value="5">5</option>
               </select>
             </div>
             <div class="col">
               <select id="simWeight">
-                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
-                <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+                <option>1</option><option>2</option><option>3</option>
+                <option>4</option><option>5</option><option>6</option>
+                <option>7</option><option>8</option><option>9</option><option>10</option>
               </select>
             </div>
             <div class="col">
@@ -160,267 +126,165 @@
           </div>
         </div>
       </div>
-
-      <div class="footnote"></div>
     </div>
   </div>
 
   <div id="toast" class="toast"></div>
 
   <script>
-  const cfg = {
-    host: localStorage.getItem('bk_host') || '',
-    token: sessionStorage.getItem('bk_token') || localStorage.getItem('bk_token') || null,
-    remember: localStorage.getItem('bk_remember') || 'no',
-    PROXY_BASE: ''
-  };
+    const $ = (id)=>document.getElementById(id);
+    const toast=(msg)=>{const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
 
-  const $ = (id)=>document.getElementById(id);
-  const toast=(msg)=>{const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200)};
+    const cfg = {
+      host: localStorage.getItem('bk_host') || '',
+      token: sessionStorage.getItem('bk_token') || localStorage.getItem('bk_token') || null,
+    };
 
-  $('host').value = cfg.host;
-  $('remember').value = cfg.remember;
-  if (cfg.host) {
-    $('directLogin').href = cfg.host + '/bakaweb/login';
-    $('schoolHint').textContent = new URL(cfg.host).host;
-  } else {
-    $('directLogin').removeAttribute('href');
-    $('schoolHint').textContent = '';
-  }
+    let marksRaw = [];
+    let subjects = [];
+    let simulated = [];
 
-  $('saveCfg').onclick = ()=>{
-    try{ new URL($('host').value) }catch{ return toast('Neplatná URL školy'); }
-    cfg.host = $('host').value.replace(/\/$/,'');
-    localStorage.setItem('bk_host', cfg.host);
-    cfg.remember = $('remember').value; localStorage.setItem('bk_remember', cfg.remember);
-    $('directLogin').href = cfg.host + '/bakaweb/login';
-    $('schoolHint').textContent = new URL(cfg.host).host;
-    toast('Nastavení uloženo');
-  };
+	// Otevření menu (☰)
+	$('menuBtn').onclick = () => $('sidebar').classList.add('open');
 
-  function mapGradeTextToNumber(txt){
-    if(!txt) return NaN;
-    const t = String(txt).trim();
-    if(/^\d-$/.test(t)){ // 1-,2-,3-,4-
-      return parseInt(t[0]) + 0.5;
+	// Zavření menu (✕)
+	$('closeSidebar').onclick = () => $('sidebar').classList.remove('open');
+
+
+    function showApp(){
+      $('loginCard').style.display='none';
+      $('appCard').style.display='block';
+      $('menuBtn').style.display='block';
+      $('usernameSidebar').value = $('loginUser').value;
+      $('host').value = cfg.host;
     }
-    const base = parseFloat(t.replace(',', '.'));
-    if(!isNaN(base)) return base;
-    return NaN;
-  }
-
-  function weightedAverage(items){
-    let s=0, w=0;
-    for(const it of items){
-      const g = typeof it.value==='number' ? it.value : mapGradeTextToNumber(it.value || it.MarkText);
-      const wt = Number(it.weight ?? it.Weight ?? 1);
-      if(!isNaN(g) && wt>0){ s += g*wt; w += wt; }
+    function showLogin(){
+      $('loginCard').style.display='block';
+      $('appCard').style.display='none';
+      $('menuBtn').style.display='none';
+      $('sidebar').classList.remove('open');
     }
-    return w>0 ? (s/w) : NaN;
-  }
 
-  function formatAvg(x){
-    if(isNaN(x)) return '—';
-    return x.toFixed(2).replace('.', ',');
-  }
-
-  function schoolYearRange(){
-    const now=new Date();
-    const y = now.getMonth()>=8 ? now.getFullYear() : now.getFullYear()-1;
-    return {from: new Date(y,8,1), to: new Date(y+1,7,31)};
-  }
-
-  function isoDate(d){ return d.toISOString().slice(0,10); }
-
-  async function apiFetch(path, opts={}){
-    const url = cfg.PROXY_BASE ? `${cfg.PROXY_BASE}${path}` : `${cfg.host}${path}`;
-    const headers = Object.assign({}, opts.headers||{});
-    if(cfg.token) headers['Authorization'] = `Bearer ${cfg.token}`;
-    const res = await fetch(url, Object.assign({mode:'cors'}, opts, {headers}));
-    if(!res.ok){
-      const text = await res.text().catch(()=>res.statusText);
-      throw new Error(`HTTP ${res.status}: ${text}`);
+    function mapGradeTextToNumber(txt){
+      if(!txt) return NaN;
+      const t=String(txt).trim();
+      if(/^\d-$/.test(t)) return parseInt(t[0])+0.5;
+      const base=parseFloat(t.replace(',','.'));
+      return isNaN(base)?NaN:base;
     }
-    const ct = res.headers.get('content-type')||'';
-    if(ct.includes('application/json')) return res.json();
-    return res.text();
-  }
-
-  async function getToken(username, password){
-    const candidates = [
-      { path:'/api/login',       body:`client_id=ANDR&grant_type=password&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, headers:{'Content-Type':'application/x-www-form-urlencoded'} },
-      { path:'/api/3/login',     body:JSON.stringify({client_id:'ANDR', grant_type:'password', username, password}), headers:{'Content-Type':'application/json'} },
-      { path:'/api/login',       body:JSON.stringify({client_id:'ANDR', grant_type:'password', username, password}), headers:{'Content-Type':'application/json'} },
-    ];
-    let lastErr = null;
-    for(const c of candidates){
-      try{
-        const data = await apiFetch(c.path, {method:'POST', headers:c.headers, body:c.body});
-        if(data && (data.access_token || data.AccessToken || data.token)){
-          return data.access_token || data.AccessToken || data.token;
-        }
-      }catch(e){ lastErr = e; }
+    function weightedAverage(items){
+      let s=0,w=0;
+      for(const it of items){
+        const g=typeof it.value==='number'?it.value:mapGradeTextToNumber(it.value||it.MarkText);
+        const wt=Number(it.weight??it.Weight??1);
+        if(!isNaN(g)&&wt>0){s+=g*wt;w+=wt;}
+      }
+      return w>0?(s/w):NaN;
     }
-    throw lastErr || new Error('Nepodařilo se získat token');
-  }
+    function formatAvg(x){return isNaN(x)?'—':x.toFixed(2).replace('.',',');}
 
-  async function fetchMarks(){
-    const range = schoolYearRange();
-    return await apiFetch(`/api/3/marks?dateFrom=${isoDate(range.from)}&dateTo=${isoDate(range.to)}`);
-  }
-
-  let marksRaw = [];
-  let subjects = [];
-  let simulated = [];
-
-  function rebuildSubjects(){
-    const map = new Map();
-    for(const m of marksRaw){
-      const subj = m.SubjectName;
-      if(!subj) continue;
-      if(!map.has(subj)) map.set(subj, 0);
-      map.set(subj, map.get(subj)+1);
-    }
-    subjects = Array.from(map.entries()).map(([name,count])=>({name,count})).sort((a,b)=>a.name.localeCompare(b.name));
-    const sel=$('subjectSelect'); sel.innerHTML='';
-    subjects.forEach(s=>{
-      const o=document.createElement('option');
-      o.value=s.name;
-      o.textContent=`${s.name} (${s.count})`;
-      sel.appendChild(o);
-    });
-  }
-
-  function currentSubject(){ return $('subjectSelect').value; }
-  
     function combinedMarksFor(subject){
-    const base = marksRaw
-        .filter(m => m.SubjectName === subject)
-        .map(m => ({
-        id: m.Id || (m.Date+':'+(m.Theme||'')),
-        value: m.MarkText,
-        weight: m.Weight ?? 1,
-        caption: m.Caption,
-        text: m.Text,
-        theme: m.Theme
-        }));
-    const sim = simulated.filter(x => x.subject === subject);
-    const map = new Map();
-    for (const b of base) map.set(b.id, b);
-    for (const s of sim) map.set(s.id || ('sim-'+Math.random().toString(36).slice(2)), s);
-    return Array.from(map.values());
+      const base=marksRaw.filter(m=>m.SubjectName===subject).map(m=>({
+        id:m.Id||(m.Date+':'+(m.Theme||'')),
+        value:m.MarkText,weight:m.Weight??1,
+        caption:m.Caption,text:m.Text,theme:m.Theme
+      }));
+      const sim=simulated.filter(x=>x.subject===subject);
+      const map=new Map();
+      for(const b of base) map.set(b.id,b);
+      for(const s of sim) map.set(s.id||('sim-'+Math.random().toString(36).slice(2)),s);
+      return Array.from(map.values());
     }
-
-
-  function render(subject){
-    $('subjectTitle').textContent = subject || '—';
-    const items = subject ? combinedMarksFor(subject) : [];
-    const avg = weightedAverage(items);
-    $('avgVal').textContent = formatAvg(avg);
-    $('countVal').textContent = String(items.length);
-
-    const tbody = $('marksTable').querySelector('tbody');
-    tbody.innerHTML='';
-        for(const it of items){
+    function render(subject){
+      $('subjectTitle').textContent=subject||'—';
+      const items=subject?combinedMarksFor(subject):[];
+      const avg=weightedAverage(items);
+      $('avgVal').textContent=formatAvg(avg);
+      $('countVal').textContent=String(items.length);
+      const tbody=$('marksTable').querySelector('tbody');tbody.innerHTML='';
+      for(const it of items){
         const tr=document.createElement('tr');
         const gradeTd=document.createElement('td');
         const weightTd=document.createElement('td');
-        const actTd=document.createElement('td'); actTd.className='right';
+        const actTd=document.createElement('td');actTd.className='right';
+        const gi=document.createElement('input');gi.value=it.value;gi.style.width='70px';
+        gi.onchange=()=>{it.value=gi.value;upsertSim(subject,it);render(subject);};
+        const wi=document.createElement('input');wi.type='number';wi.step='1';wi.min='1';wi.value=it.weight||1;wi.style.width='60px';
+        wi.onchange=()=>{it.weight=Number(wi.value);upsertSim(subject,it);render(subject);};
+        gradeTd.appendChild(gi);weightTd.appendChild(wi);
+        if(it.id&&it.id.startsWith("sim-")){
+          const del=document.createElement('button');del.textContent='✕';del.className='btn-danger';
+          del.onclick=()=>{removeSim(subject,it);render(subject);};
+          actTd.appendChild(del);
+        } else { actTd.textContent=it.caption||it.text||it.theme||""; }
+        tr.append(gradeTd,weightTd,actTd);tbody.appendChild(tr);
+      }
+    }
 
-        const gradeInput=document.createElement('input'); 
-        gradeInput.value=it.value; 
-        gradeInput.style.width='70px';
-        gradeInput.onchange=()=>{
-            it.value=gradeInput.value; 
-            upsertSim(subject, it); 
-            render(subject); 
-        };
+    function upsertSim(subject,mark){
+      if(!mark.id) mark.id='sim-'+Math.random().toString(36).slice(2);
+      const idx=simulated.findIndex(x=>x.subject===subject&&x.id===mark.id);
+      if(idx>=0) simulated[idx]=Object.assign({},mark,{subject}); else simulated.push(Object.assign({},mark,{subject}));
+      localStorage.setItem('bk_sim',JSON.stringify(simulated));
+    }
+    function removeSim(subject,mark){
+      simulated=simulated.filter(x=>!(x.subject===subject&&x.id===mark.id));
+      localStorage.setItem('bk_sim',JSON.stringify(simulated));
+    }
+    function loadSim(){try{simulated=JSON.parse(localStorage.getItem('bk_sim')||'[]');}catch{simulated=[];}}
 
-        const weightInput=document.createElement('input'); 
-        weightInput.type='number'; 
-        weightInput.step='1'; 
-        weightInput.min='1'; 
-        weightInput.value=it.weight||1; 
-        weightInput.style.width='60px';
-        weightInput.onchange=()=>{
-            it.weight=Number(weightInput.value); 
-            upsertSim(subject, it); 
-            render(subject); 
-        };
+    async function apiFetch(url, options={}){
+      const resp=await fetch(cfg.host+url,{...options,headers:{...(options.headers||{}),Authorization:`Bearer ${cfg.token}`}});
+      if(!resp.ok) throw new Error(resp.status+" "+resp.statusText);
+      return resp.json();
+    }
 
-        gradeTd.appendChild(gradeInput);
-        weightTd.appendChild(weightInput);
+    async function getToken(user,pass){
+      const resp=await fetch(cfg.host+"/api/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({client_id:"ANDR",grant_type:"password",username:user,password:pass})});
+      if(!resp.ok) throw new Error("Login failed");
+      return resp.json();
+    }
 
-        if(it.id && it.id.startsWith("sim-")){
-            // jen simulované známky půjdou mazat
-            const delBtn=document.createElement('button'); 
-            delBtn.textContent='✕'; 
-            delBtn.className='btn-danger';
-            delBtn.onclick=()=>{ removeSim(subject,it); render(subject); };
-            actTd.appendChild(delBtn);
-        } else {
-            // známky z Bakalářů – ukážeme popis
-            actTd.textContent = it.caption || it.text || it.theme || "";
+    async function fetchMarks(){
+      return apiFetch("/api/3/marks");
+    }
 
-        }
+    async function reload(){
+      try{
+        const data=await fetchMarks();
+        marksRaw=data?.Subjects?.flatMap(s=>s.Marks?.map(m=>({...m,SubjectName:s.Subject.Name}))||[])||[];
+        const map=new Map();for(const m of marksRaw){if(!map.has(m.SubjectName))map.set(m.SubjectName,0);map.set(m.SubjectName,map.get(m.SubjectName)+1);}
+        subjects=Array.from(map.entries()).map(([name,count])=>({name,count})).sort((a,b)=>a.name.localeCompare(b.name));
+        const sel=$('subjectSelect');sel.innerHTML='';
+        subjects.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=`${s.name} (${s.count})`;sel.appendChild(o);});
+        if(subjects[0]){sel.value=subjects[0].name;render(subjects[0].name);}
+      }catch(e){toast("Chyba načítání: "+e.message);}
+    }
 
-        tr.appendChild(gradeTd); 
-        tr.appendChild(weightTd); 
-        tr.appendChild(actTd);
-        tbody.appendChild(tr);
-        }
+    $('btnLogin').onclick=async()=>{
+      const host=$('loginHost').value.trim();
+      const u=$('loginUser').value.trim(),p=$('loginPass').value;
+      if(!host||!u||!p) return toast("Vyplň všechna pole");
+      try{
+        cfg.host=host.replace(/\/$/,'');
+        localStorage.setItem('bk_host',cfg.host);
+        const data=await getToken(u,p);
+        cfg.token=data.access_token;
+        localStorage.setItem('bk_token',cfg.token);
+        toast("Přihlášeno");
+        showApp();
+        reload();
+      }catch(e){toast("Chyba přihlášení: "+e.message);}
+    };
 
-  }
+    $('logout').onclick=()=>{cfg.token=null;localStorage.removeItem('bk_token');sessionStorage.removeItem('bk_token');toast("Odhlášeno");showLogin();};
 
-  function upsertSim(subject, mark){
-    if(!mark.id) mark.id='sim-'+Math.random().toString(36).slice(2);
-    const idx=simulated.findIndex(x=>x.subject===subject && x.id===mark.id);
-    if(idx>=0) simulated[idx]=Object.assign({},mark,{subject}); else simulated.push(Object.assign({},mark,{subject}));
-    persistSim();
-  }
-  function removeSim(subject, mark){
-    simulated=simulated.filter(x=>!(x.subject===subject && x.id===mark.id));
-    persistSim();
-  }
-  function persistSim(){ localStorage.setItem('bk_sim', JSON.stringify(simulated)); }
-  function loadSim(){ try{ simulated=JSON.parse(localStorage.getItem('bk_sim')||'[]'); }catch{simulated=[];} }
+    $('reload').onclick=reload;
+    $('subjectSelect').onchange=()=>render($('subjectSelect').value);
+    $('addSim').onclick=()=>{const subject=$('subjectSelect').value;if(!subject)return toast("Vyber předmět");const g=$('simGrade').value;const w=Number($('simWeight').value)||1;upsertSim(subject,{id:'sim-'+Math.random().toString(36).slice(2),value:g,weight:w});render(subject);};
 
-  async function reload(){
-    try{
-      const data = await fetchMarks();
-      marksRaw = data?.Subjects?.flatMap(s=>s.Marks?.map(m=>({...m, SubjectName:s.Subject.Name})) || []) || [];
-      rebuildSubjects();
-      const first = subjects[0]?.name; if(first){ $('subjectSelect').value=first; render(first); }
-    }catch(e){ console.error(e); toast('Chyba načítání známek: '+e.message); }
-  }
-
-  $('btnLogin').onclick=async()=>{
-    try{
-      const u=$('username').value.trim(), p=$('password').value;
-      if(!u||!p) return toast('Zadej jméno a heslo');
-      const token=await getToken(u,p);
-      cfg.token=token;
-      if(cfg.remember==='yes') localStorage.setItem('bk_token',token); else sessionStorage.setItem('bk_token',token);
-      toast('Přihlášení OK'); $('appCard').style.display='block'; reload();
-    }catch(e){ console.error(e); toast('Chyba přihlášení: '+e.message); }
-  };
-  $('logout').onclick=()=>{ cfg.token=null; sessionStorage.removeItem('bk_token'); localStorage.removeItem('bk_token'); $('appCard').style.display='none'; toast('Odhlášeno'); };
-
-  $('reload').onclick=reload;
-  $('subjectSelect').onchange=()=>render(currentSubject());
-
-  $('addSim').onclick=()=>{
-    const subject=currentSubject();
-    if(!subject) return toast('Vyber předmět');
-    const g=$('simGrade').value;
-    const w=Number($('simWeight').value)||1;
-    const mark={id:'sim-'+Math.random().toString(36).slice(2), value:g, weight:w};
-    upsertSim(subject,mark);
-    render(subject);
-  };
-
-  loadSim();
-  if(cfg.token){ $('appCard').style.display='block'; reload(); }
+    loadSim();
+    if(cfg.token){showApp();reload();} else {showLogin();}
   </script>
 </body>
 </html>

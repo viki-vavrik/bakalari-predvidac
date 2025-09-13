@@ -168,12 +168,6 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/service-worker.js")
-    .then(() => console.log("Service Worker registrován"))
-    .catch(err => console.error("SW error", err));
-}
-//
   const cfg = {
     host: localStorage.getItem('bk_host') || '',
     token: sessionStorage.getItem('bk_token') || localStorage.getItem('bk_token') || null,

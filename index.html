@@ -65,27 +65,19 @@
     <!-- LOGIN -->
     <div class="card" id="loginCard">
       <label>Adresa školy</label>
-       <div style="position: relative;">
-  <input id="loginHost" autocomplete="url" data-protonpass-ignore="true" 
-         placeholder="https://stav-ova.bakalari.cz/bakaweb" />
-  <button id="schoolPickerBtn"  style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
-         width:24px;height:24pxy;        /* <<< přidáno */
-         background:none;border:none;
-         display:flex;align-items:center;justify-content:center; /* centrování */
-         color:#7c9cff;cursor:pointer;font-size:18px;
-         padding:0;line-height:1;">
-  🔍
-</button>
-
-	  <div id="schoolDropdown"  style="display:none;position:absolute;top:110%;left:0;right:0; max-height:260px;overflow:auto;background:#0d1330; border:1px solid #22306a;border-radius:12px;z-index:1000;">
-   	 <input id="schoolSearch" placeholder="Hledat školu..." style="width:100%;padding:8px;border:none;border-bottom:1px solid #22306a; background:#0b1020;color:#e8eeff;box-sizing:border-box;" />
-	    <div id="schoolList"></div>
- 	 </div>
-	</div>
+      <div style="position: relative;">
+        <input id="loginHost" autocomplete="url" data-protonpass-ignore="true"
+               placeholder="Vyhledat adresu..." />
+        <div id="schoolDropdown" style="display:none;position:absolute;top:110%;left:0;right:0;
+             max-height:260px;overflow:auto;background:#0d1330;
+             border:1px solid #22306a;border-radius:12px;z-index:1000;">
+          <div id="schoolList"></div>
+        </div>
+      </div>
       <label>Uživatelské jméno</label>
-     	 <input id="loginUser" autocomplete="username" />
+      <input id="loginUser" autocomplete="username" />
       <label>Heslo</label>
-     	 <input id="loginPass" type="password" autocomplete="current-password" />
+      <input id="loginPass" type="password" autocomplete="current-password" />
       <label>Použijte vaše přihlašovací údaje do systému Bakaláři.</label>
       <button id="btnLogin">Přihlásit se</button>
     </div>
@@ -151,7 +143,6 @@
 
   <script>
 const $ = (id)=>document.getElementById(id);
-// zacatek seznamu
 let schools = [];
 
 // Načti seznam škol
@@ -164,12 +155,21 @@ async function loadSchools() {
   }
 }
 
+// Normalizace textu (bez diakritiky a interpunkce)
+function normalize(str) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s,.\-]/g, "")
+    .toLowerCase();
+}
+
 function renderSchools(filter="") {
   const listDiv = $("schoolList");
   listDiv.innerHTML = "";
-  const f = filter.toLowerCase();
-  const filtered = schools.filter(s => 
-    s.name.toLowerCase().includes(f) || s.url.toLowerCase().includes(f)
+  const f = normalize(filter);
+  const filtered = schools.filter(s =>
+    normalize(s.name).includes(f) || normalize(s.url).includes(f)
   );
   if (!filtered.length) {
     listDiv.innerHTML = "<div style='padding:8px;color:#95a0b8'>Žádná shoda</div>";
@@ -192,21 +192,20 @@ function renderSchools(filter="") {
   });
 }
 
-// Ovládání dropdownu
-$("schoolPickerBtn").onclick = (e) => {
-  e.preventDefault();
-  const dd = $("schoolDropdown");
-  dd.style.display = dd.style.display==="none" ? "block" : "none";
-  $("schoolSearch").value = "";
-  renderSchools();
-  $("schoolSearch").focus();
-};
-
-$("schoolSearch").oninput = () => renderSchools($("schoolSearch").value);
+// Při psaní do pole Adresa školy
+$("loginHost").addEventListener("input", () => {
+  const val = $("loginHost").value.trim();
+  if (val.length > 0) {
+    $("schoolDropdown").style.display = "block";
+    renderSchools(val);
+  } else {
+    $("schoolDropdown").style.display = "none";
+  }
+});
 
 // Klik mimo dropdown = zavřít
 document.addEventListener("click", (e) => {
-  if (!e.target.closest("#schoolDropdown") && e.target.id!=="schoolPickerBtn") {
+  if (!e.target.closest("#schoolDropdown") && e.target.id!=="loginHost") {
     $("schoolDropdown").style.display = "none";
   }
 });
@@ -214,159 +213,31 @@ document.addEventListener("click", (e) => {
 // Načti seznam při startu
 loadSchools();
 
-
-
-    // po seznamu
+    // --- zbytek kódu (toast, login, marks, app atd.) ---
     const toast=(msg)=>{const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)};
-
-    const cfg = {
-      host: localStorage.getItem('bk_host') || '',
-      token: sessionStorage.getItem('bk_token') || localStorage.getItem('bk_token') || null,
-    };
-
-    let marksRaw = [];
-    let subjects = [];
-    let simulated = [];
-
-	// Otevření menu (☰)
-	$('menuBtn').onclick = () => $('sidebar').classList.add('open');
-
-	// Zavření menu (✕)
-	$('closeSidebar').onclick = () => $('sidebar').classList.remove('open');
-
-
-    function showApp(){
-      $('loginCard').style.display='none';
-      $('appCard').style.display='block';
-      $('menuBtn').style.display='block';
-      $('usernameSidebar').value = $('loginUser').value;
-      $('host').value = cfg.host;
-    }
-    function showLogin(){
-      $('loginCard').style.display='block';
-      $('appCard').style.display='none';
-      $('menuBtn').style.display='none';
-      $('sidebar').classList.remove('open');
-    }
-
-    function mapGradeTextToNumber(txt){
-      if(!txt) return NaN;
-      const t=String(txt).trim();
-      if(/^\d-$/.test(t)) return parseInt(t[0])+0.5;
-      const base=parseFloat(t.replace(',','.'));
-      return isNaN(base)?NaN:base;
-    }
-    function weightedAverage(items){
-      let s=0,w=0;
-      for(const it of items){
-        const g=typeof it.value==='number'?it.value:mapGradeTextToNumber(it.value||it.MarkText);
-        const wt=Number(it.weight??it.Weight??1);
-        if(!isNaN(g)&&wt>0){s+=g*wt;w+=wt;}
-      }
-      return w>0?(s/w):NaN;
-    }
+    const cfg = {host: localStorage.getItem('bk_host') || '',token: sessionStorage.getItem('bk_token') || localStorage.getItem('bk_token') || null,};
+    let marksRaw = []; let subjects = []; let simulated = [];
+    $('menuBtn').onclick = () => $('sidebar').classList.add('open');
+    $('closeSidebar').onclick = () => $('sidebar').classList.remove('open');
+    function showApp(){ $('loginCard').style.display='none'; $('appCard').style.display='block'; $('menuBtn').style.display='block'; $('usernameSidebar').value = $('loginUser').value; $('host').value = cfg.host;}
+    function showLogin(){ $('loginCard').style.display='block'; $('appCard').style.display='none'; $('menuBtn').style.display='none'; $('sidebar').classList.remove('open');}
+    function mapGradeTextToNumber(txt){if(!txt) return NaN;const t=String(txt).trim();if(/^\d-$/.test(t)) return parseInt(t[0])+0.5;const base=parseFloat(t.replace(',','.'));return isNaN(base)?NaN:base;}
+    function weightedAverage(items){let s=0,w=0;for(const it of items){const g=typeof it.value==='number'?it.value:mapGradeTextToNumber(it.value||it.MarkText);const wt=Number(it.weight??it.Weight??1);if(!isNaN(g)&&wt>0){s+=g*wt;w+=wt;}}return w>0?(s/w):NaN;}
     function formatAvg(x){return isNaN(x)?'—':x.toFixed(2).replace('.',',');}
-
-    function combinedMarksFor(subject){
-      const base=marksRaw.filter(m=>m.SubjectName===subject).map(m=>({
-        id:m.Id||(m.Date+':'+(m.Theme||'')),
-        value:m.MarkText,weight:m.Weight??1,
-        caption:m.Caption,text:m.Text,theme:m.Theme
-      }));
-      const sim=simulated.filter(x=>x.subject===subject);
-      const map=new Map();
-      for(const b of base) map.set(b.id,b);
-      for(const s of sim) map.set(s.id||('sim-'+Math.random().toString(36).slice(2)),s);
-      return Array.from(map.values());
-    }
-    function render(subject){
-      $('subjectTitle').textContent=subject||'—';
-      const items=subject?combinedMarksFor(subject):[];
-      const avg=weightedAverage(items);
-      $('avgVal').textContent=formatAvg(avg);
-      $('countVal').textContent=String(items.length);
-      const tbody=$('marksTable').querySelector('tbody');tbody.innerHTML='';
-      for(const it of items){
-        const tr=document.createElement('tr');
-        const gradeTd=document.createElement('td');
-        const weightTd=document.createElement('td');
-        const actTd=document.createElement('td');actTd.className='right';
-        const gi=document.createElement('input');gi.value=it.value;gi.style.width='70px';
-        gi.onchange=()=>{it.value=gi.value;upsertSim(subject,it);render(subject);};
-        const wi=document.createElement('input');wi.type='number';wi.step='1';wi.min='1';wi.value=it.weight||1;wi.style.width='60px';
-        wi.onchange=()=>{it.weight=Number(wi.value);upsertSim(subject,it);render(subject);};
-        gradeTd.appendChild(gi);weightTd.appendChild(wi);
-        if(it.id&&it.id.startsWith("sim-")){
-          const del=document.createElement('button');del.textContent='✕';del.className='btn-danger';
-          del.onclick=()=>{removeSim(subject,it);render(subject);};
-          actTd.appendChild(del);
-        } else { actTd.textContent=it.caption||it.text||it.theme||""; }
-        tr.append(gradeTd,weightTd,actTd);tbody.appendChild(tr);
-      }
-    }
-
-    function upsertSim(subject,mark){
-      if(!mark.id) mark.id='sim-'+Math.random().toString(36).slice(2);
-      const idx=simulated.findIndex(x=>x.subject===subject&&x.id===mark.id);
-      if(idx>=0) simulated[idx]=Object.assign({},mark,{subject}); else simulated.push(Object.assign({},mark,{subject}));
-      localStorage.setItem('bk_sim',JSON.stringify(simulated));
-    }
-    function removeSim(subject,mark){
-      simulated=simulated.filter(x=>!(x.subject===subject&&x.id===mark.id));
-      localStorage.setItem('bk_sim',JSON.stringify(simulated));
-    }
+    function combinedMarksFor(subject){const base=marksRaw.filter(m=>m.SubjectName===subject).map(m=>({id:m.Id||(m.Date+':'+(m.Theme||'')),value:m.MarkText,weight:m.Weight??1,caption:m.Caption,text:m.Text,theme:m.Theme}));const sim=simulated.filter(x=>x.subject===subject);const map=new Map();for(const b of base) map.set(b.id,b);for(const s of sim) map.set(s.id||('sim-'+Math.random().toString(36).slice(2)),s);return Array.from(map.values());}
+    function render(subject){$('subjectTitle').textContent=subject||'—';const items=subject?combinedMarksFor(subject):[];const avg=weightedAverage(items);$('avgVal').textContent=formatAvg(avg);$('countVal').textContent=String(items.length);const tbody=$('marksTable').querySelector('tbody');tbody.innerHTML='';for(const it of items){const tr=document.createElement('tr');const gradeTd=document.createElement('td');const weightTd=document.createElement('td');const actTd=document.createElement('td');actTd.className='right';const gi=document.createElement('input');gi.value=it.value;gi.style.width='70px';gi.onchange=()=>{it.value=gi.value;upsertSim(subject,it);render(subject);};const wi=document.createElement('input');wi.type='number';wi.step='1';wi.min='1';wi.value=it.weight||1;wi.style.width='60px';wi.onchange=()=>{it.weight=Number(wi.value);upsertSim(subject,it);render(subject);};gradeTd.appendChild(gi);weightTd.appendChild(wi);if(it.id&&it.id.startsWith("sim-")){const del=document.createElement('button');del.textContent='✕';del.className='btn-danger';del.onclick=()=>{removeSim(subject,it);render(subject);};actTd.appendChild(del);} else { actTd.textContent=it.caption||it.text||it.theme||""; }tr.append(gradeTd,weightTd,actTd);tbody.appendChild(tr);}}
+    function upsertSim(subject,mark){if(!mark.id) mark.id='sim-'+Math.random().toString(36).slice(2);const idx=simulated.findIndex(x=>x.subject===subject&&x.id===mark.id);if(idx>=0) simulated[idx]=Object.assign({},mark,{subject}); else simulated.push(Object.assign({},mark,{subject}));localStorage.setItem('bk_sim',JSON.stringify(simulated));}
+    function removeSim(subject,mark){simulated=simulated.filter(x=>!(x.subject===subject&&x.id===mark.id));localStorage.setItem('bk_sim',JSON.stringify(simulated));}
     function loadSim(){try{simulated=JSON.parse(localStorage.getItem('bk_sim')||'[]');}catch{simulated=[];}}
-
-    async function apiFetch(url, options={}){
-      const resp=await fetch(cfg.host+url,{...options,headers:{...(options.headers||{}),Authorization:`Bearer ${cfg.token}`}});
-      if(!resp.ok) throw new Error(resp.status+" "+resp.statusText);
-      return resp.json();
-    }
-
-    async function getToken(user,pass){
-      const resp=await fetch(cfg.host+"/api/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({client_id:"ANDR",grant_type:"password",username:user,password:pass})});
-      if(!resp.ok) throw new Error("Login failed");
-      return resp.json();
-    }
-
-    async function fetchMarks(){
-      return apiFetch("/api/3/marks");
-    }
-
-    async function reload(){
-      try{
-        const data=await fetchMarks();
-        marksRaw=data?.Subjects?.flatMap(s=>s.Marks?.map(m=>({...m,SubjectName:s.Subject.Name}))||[])||[];
-        const map=new Map();for(const m of marksRaw){if(!map.has(m.SubjectName))map.set(m.SubjectName,0);map.set(m.SubjectName,map.get(m.SubjectName)+1);}
-        subjects=Array.from(map.entries()).map(([name,count])=>({name,count})).sort((a,b)=>a.name.localeCompare(b.name));
-        const sel=$('subjectSelect');sel.innerHTML='';
-        subjects.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=`${s.name} (${s.count})`;sel.appendChild(o);});
-        if(subjects[0]){sel.value=subjects[0].name;render(subjects[0].name);}
-      }catch(e){toast("Chyba načítání: "+e.message);}
-    }
-
-    $('btnLogin').onclick=async()=>{
-      const host=$('loginHost').value.trim();
-      const u=$('loginUser').value.trim(),p=$('loginPass').value;
-      if(!host||!u||!p) return toast("Vyplň všechna pole");
-      try{
-        cfg.host=host.replace(/\/$/,'');
-        localStorage.setItem('bk_host',cfg.host);
-        const data=await getToken(u,p);
-        cfg.token=data.access_token;
-        localStorage.setItem('bk_token',cfg.token);
-        toast("Přihlášeno");
-        showApp();
-        reload();
-      }catch(e){toast("Chyba přihlášení: "+e.message);}
-    };
-
+    async function apiFetch(url, options={}){const resp=await fetch(cfg.host+url,{...options,headers:{...(options.headers||{}),Authorization:`Bearer ${cfg.token}`}});if(!resp.ok) throw new Error(resp.status+" "+resp.statusText);return resp.json();}
+    async function getToken(user,pass){const resp=await fetch(cfg.host+"/api/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({client_id:"ANDR",grant_type:"password",username:user,password:pass})});if(!resp.ok) throw new Error("Login failed");return resp.json();}
+    async function fetchMarks(){return apiFetch("/api/3/marks");}
+    async function reload(){try{const data=await fetchMarks();marksRaw=data?.Subjects?.flatMap(s=>s.Marks?.map(m=>({...m,SubjectName:s.Subject.Name}))||[])||[];const map=new Map();for(const m of marksRaw){if(!map.has(m.SubjectName))map.set(m.SubjectName,0);map.set(m.SubjectName,map.get(m.SubjectName)+1);}subjects=Array.from(map.entries()).map(([name,count])=>({name,count})).sort((a,b)=>a.name.localeCompare(b.name));const sel=$('subjectSelect');sel.innerHTML='';subjects.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=`${s.name} (${s.count})`;sel.appendChild(o);});if(subjects[0]){sel.value=subjects[0].name;render(subjects[0].name);}}catch(e){toast("Chyba načítání: "+e.message);}}
+    $('btnLogin').onclick=async()=>{const host=$('loginHost').value.trim();const u=$('loginUser').value.trim(),p=$('loginPass').value;if(!host||!u||!p) return toast("Vyplň všechna pole");try{cfg.host=host.replace(/\/$/,'');localStorage.setItem('bk_host',cfg.host);const data=await getToken(u,p);cfg.token=data.access_token;localStorage.setItem('bk_token',cfg.token);toast("Přihlášeno");showApp();reload();}catch(e){toast("Chyba přihlášení: "+e.message);}};
     $('logout').onclick=()=>{cfg.token=null;localStorage.removeItem('bk_token');sessionStorage.removeItem('bk_token');toast("Odhlášeno");showLogin();};
-
     $('reload').onclick=reload;
     $('subjectSelect').onchange=()=>render($('subjectSelect').value);
     $('addSim').onclick=()=>{const subject=$('subjectSelect').value;if(!subject)return toast("Vyber předmět");const g=$('simGrade').value;const w=Number($('simWeight').value)||1;upsertSim(subject,{id:'sim-'+Math.random().toString(36).slice(2),value:g,weight:w});render(subject);};
-
     loadSim();
     if(cfg.token){showApp();reload();} else {showLogin();}
   </script>
